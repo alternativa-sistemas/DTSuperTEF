@@ -22,13 +22,16 @@ object Form1: TForm1
   end
   object PageControl1: TPageControl
     Left = 0
-    Top = 43
+    Top = 42
     Width = 790
-    Height = 417
+    Height = 418
     Cursor = crHandPoint
     ActivePage = tsClientes
     Align = alClient
     TabOrder = 0
+    ExplicitTop = 43
+    ExplicitWidth = 780
+    ExplicitHeight = 385
     object tsClientes: TTabSheet
       Caption = 'Clientes'
       object LabelCliAtivo: TLabel
@@ -348,7 +351,7 @@ object Form1: TForm1
         Width = 200
         Height = 23
         TabOrder = 0
-        Text = '43'
+        Text = '1521'
       end
       object edtPayTransType: TEdit
         Left = 16
@@ -446,6 +449,16 @@ object Form1: TForm1
         TabOrder = 11
         OnClick = btnCancelarPagamentoClick
       end
+      object btnSolicitarEstorno: TButton
+        Left = 240
+        Top = 173
+        Width = 120
+        Height = 25
+        Cursor = crHandPoint
+        Caption = 'Solicitar Estorno'
+        TabOrder = 12
+        OnClick = btnSolicitarEstornoClick
+      end
     end
     object TabPagamentos: TTabSheet
       Caption = 'Relat'#243'rio de Pagamentos'
@@ -453,7 +466,7 @@ object Form1: TForm1
       object Panel2: TPanel
         Left = 0
         Top = 0
-        Width = 782
+        Width = 774
         Height = 110
         Align = alTop
         AutoSize = True
@@ -551,8 +564,8 @@ object Form1: TForm1
       object DBGrid1: TDBGrid
         Left = 0
         Top = 110
-        Width = 782
-        Height = 277
+        Width = 774
+        Height = 265
         Cursor = crHandPoint
         Align = alClient
         DataSource = Ds_Pagamentos
@@ -584,12 +597,14 @@ object Form1: TForm1
     ScrollBars = ssVertical
     TabOrder = 1
     StyleElements = [seFont, seBorder]
+    ExplicitTop = 428
+    ExplicitWidth = 780
   end
   object Panel1: TPanel
     Left = 0
     Top = 0
     Width = 790
-    Height = 43
+    Height = 42
     Align = alTop
     AutoSize = True
     BevelOuter = bvNone
@@ -610,20 +625,18 @@ object Form1: TForm1
       Caption = 'Chave Cliente'
     end
     object edtToken: TEdit
-      Left = 11
-      Top = 18
+      Left = 7
+      Top = 17
       Width = 323
       Height = 23
       TabOrder = 0
-      Text = 'SEU_TOKEN'
     end
     object edtCliChave: TEdit
       Left = 336
-      Top = 18
+      Top = 17
       Width = 200
       Height = 23
       TabOrder = 1
-      Text = 'SUA_CHAVE'
     end
     object CBExibir_Json: TCheckBox
       Left = 542
@@ -638,7 +651,7 @@ object Form1: TForm1
     end
   end
   object DTSuperTEF1: TDTSuperTEF
-    BaseURL = 'https://api.supertef.com.br/api/'
+    BaseURL = 'https://api.supertef.com.br/api'
     Left = 523
     Top = 271
   end

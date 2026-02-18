@@ -1,4 +1,4 @@
-unit Unit1;
+Ôªøunit Unit1;
 
 interface
 
@@ -52,6 +52,7 @@ type
     DTSuperTEF1: TDTSuperTEF;
     Label1: TLabel;
     btnCancelarPagamento: TButton;
+    btnSolicitarEstorno: TButton;
     TabPagamentos: TTabSheet;
     Panel1: TPanel;
     Label2: TLabel;
@@ -93,6 +94,7 @@ type
     procedure btnListarPagamentosClick(Sender: TObject);
     procedure btnDetalharPagamentoClick(Sender: TObject);
     procedure btnCancelarPagamentoClick(Sender: TObject);
+    procedure btnSolicitarEstornoClick(Sender: TObject);
     procedure CBExibir_JsonClick(Sender: TObject);
     procedure DBGrid1DrawColumnCell(Sender: TObject; const Rect: TRect;
       DataCol: Integer; Column: TColumn; State: TGridDrawState);
@@ -109,10 +111,12 @@ type
     procedure LogPagamento(APagamento: TPagamento; const ATitulo: string = 'PAGAMENTO');
     procedure LogListaPagamentos(AListaPagamentos: TListaPagamentos);
     procedure LogRejeitarPagamentoResponse(AResponse: TRejeitarPagamentoResponse);
+    procedure LogEstornoResponse(AResponse: TEstornoResponse);
+    procedure LogCancelData(ACancelData: TCancelData; const AIndentacao: string = '  ');
     procedure LogPaymentOrder(APaymentOrder: TPaymentOrder; const AIndentacao: string = '  ');
     procedure LogPaymentData(APaymentData: TPaymentData; const AIndentacao: string = '  ');
 
-    // MÈtodos para DataSet (mantidos do original)
+    // M√©todos para DataSet (mantidos do original)
     procedure ConfigurarCamposClientDataSet(aCDS: TClientDataSet);
     procedure PreencherClientDataSetTipado(aCDS: TClientDataSet; AListaPagamentos: TListaPagamentos);
   public
@@ -125,7 +129,7 @@ implementation
 
 {$R *.dfm}
 
-// === MÈtodos auxiliares para log ===
+// === M√©todos auxiliares para log ===
 
 procedure TForm1.LimparMemoLog;
 begin
@@ -168,10 +172,10 @@ var
 begin
   AdicionarLinhaLog('=== LISTA DE CLIENTES ===');
   AdicionarLinhaLog('Total: ' + AListaClientes.Total.ToString);
-  AdicionarLinhaLog('Por P·gina: ' + AListaClientes.PerPage.ToString);
-  AdicionarLinhaLog('P·gina Atual: ' + AListaClientes.CurrentPage.ToString);
-  AdicionarLinhaLog('⁄ltima P·gina: ' + AListaClientes.LastPage.ToString);
-  AdicionarLinhaLog('AtÈ: ' + AListaClientes.ToPage.ToString);
+  AdicionarLinhaLog('Por P√°gina: ' + AListaClientes.PerPage.ToString);
+  AdicionarLinhaLog('P√°gina Atual: ' + AListaClientes.CurrentPage.ToString);
+  AdicionarLinhaLog('√öltima P√°gina: ' + AListaClientes.LastPage.ToString);
+  AdicionarLinhaLog('At√©: ' + AListaClientes.ToPage.ToString);
   AdicionarLinhaLog('Registros encontrados: ' + AListaClientes.Data.Count.ToString);
   AdicionarSeparador;
 
@@ -192,7 +196,7 @@ begin
   AdicionarLinhaLog('Nome: ' + APOS.Nome);
   AdicionarLinhaLog('Criado em: ' + APOS.CreatedAt);
   AdicionarLinhaLog('Atualizado em: ' + APOS.UpdatedAt);
-  AdicionarLinhaLog('Data AtivaÁ„o: ' + APOS.DateAtivacao);
+  AdicionarLinhaLog('Data Ativa√ß√£o: ' + APOS.DateAtivacao);
   AdicionarLinhaLog('Deletado em: ' + APOS.DeletedAt);
   AdicionarSeparador;
 end;
@@ -203,10 +207,10 @@ var
 begin
   AdicionarLinhaLog('=== LISTA DE POS ===');
   AdicionarLinhaLog('Total: ' + AListaPOS.Total.ToString);
-  AdicionarLinhaLog('Por P·gina: ' + AListaPOS.PerPage.ToString);
-  AdicionarLinhaLog('P·gina Atual: ' + AListaPOS.CurrentPage.ToString);
-  AdicionarLinhaLog('⁄ltima P·gina: ' + AListaPOS.LastPage.ToString);
-  AdicionarLinhaLog('AtÈ: ' + AListaPOS.ToPage.ToString);
+  AdicionarLinhaLog('Por P√°gina: ' + AListaPOS.PerPage.ToString);
+  AdicionarLinhaLog('P√°gina Atual: ' + AListaPOS.CurrentPage.ToString);
+  AdicionarLinhaLog('√öltima P√°gina: ' + AListaPOS.LastPage.ToString);
+  AdicionarLinhaLog('At√©: ' + AListaPOS.ToPage.ToString);
   AdicionarLinhaLog('Registros encontrados: ' + AListaPOS.Data.Count.ToString);
   AdicionarSeparador;
 
@@ -218,7 +222,7 @@ end;
 
 procedure TForm1.LogExcluirPOSResponse(AResponse: TExcluirPOSResponse);
 begin
-  AdicionarLinhaLog('=== EXCLUS√O DE POS ===');
+  AdicionarLinhaLog('=== EXCLUS√ÉO DE POS ===');
   AdicionarLinhaLog('Mensagem: ' + AResponse.Message);
   AdicionarSeparador;
 end;
@@ -228,11 +232,12 @@ begin
   AdicionarLinhaLog(AIndentacao + 'PAYMENT ORDER:');
   AdicionarLinhaLog(AIndentacao + '  POS ID: ' + APaymentOrder.PosId.ToString);
   AdicionarLinhaLog(AIndentacao + '  Tipo Parcelamento: ' + APaymentOrder.InstallmentType.ToString);
-  AdicionarLinhaLog(AIndentacao + '  Tipo TransaÁ„o: ' + APaymentOrder.TransactionType);
+  AdicionarLinhaLog(AIndentacao + '  Tipo Transa√ß√£o: ' + APaymentOrder.TransactionType);
   AdicionarLinhaLog(AIndentacao + '  Qtd Parcelas: ' + APaymentOrder.InstallmentCount.ToString);
   AdicionarLinhaLog(AIndentacao + '  Valor: ' + FormatFloat('#,##0.00', APaymentOrder.Amount));
   AdicionarLinhaLog(AIndentacao + '  Order ID: ' + APaymentOrder.OrderId);
-  AdicionarLinhaLog(AIndentacao + '  DescriÁ„o: ' + APaymentOrder.Description);
+  AdicionarLinhaLog(AIndentacao + '  Descri√ß√£o: ' + APaymentOrder.Description);
+  AdicionarLinhaLog(AIndentacao + '  Print Receipt: ' + APaymentOrder.PrintReceipt.ToString);
 end;
 
 procedure TForm1.LogPaymentData(APaymentData: TPaymentData; const AIndentacao: string = '  ');
@@ -243,23 +248,36 @@ begin
   AdicionarLinhaLog(AIndentacao + '  Nome Portador: ' + APaymentData.CardholderName);
   AdicionarLinhaLog(AIndentacao + '  Bandeira: ' + APaymentData.Brand);
   AdicionarLinhaLog(AIndentacao + '  NSU: ' + APaymentData.NSU);
-  AdicionarLinhaLog(AIndentacao + '  CÛdigo AutorizaÁ„o: ' + APaymentData.AuthorizationCode);
-  AdicionarLinhaLog(AIndentacao + '  Data/Hora AutorizaÁ„o: ' + APaymentData.AuthorizationDateTime);
+  AdicionarLinhaLog(AIndentacao + '  C√≥digo Autoriza√ß√£o: ' + APaymentData.AuthorizationCode);
+  AdicionarLinhaLog(AIndentacao + '  Data/Hora Autoriza√ß√£o: ' + APaymentData.AuthorizationDateTime);
   AdicionarLinhaLog(AIndentacao + '  Banco Adquirente: ' + APaymentData.AcquirerBanco);
   AdicionarLinhaLog(AIndentacao + '  CNPJ Adquirente: ' + APaymentData.AcquirerCNPJ);
+end;
+
+procedure TForm1.LogCancelData(ACancelData: TCancelData; const AIndentacao: string = '  ');
+begin
+  AdicionarLinhaLog(AIndentacao + 'CANCEL DATA:');
+  AdicionarLinhaLog(AIndentacao + '  Cancel NSU: ' + ACancelData.CancelNSU);
+  AdicionarLinhaLog(AIndentacao + '  Cancel Date/Time: ' + ACancelData.CancelDateTime);
 end;
 
 procedure TForm1.LogPagamento(APagamento: TPagamento; const ATitulo: string = 'PAGAMENTO');
 begin
   AdicionarLinhaLog('=== ' + ATitulo + ' ===');
   AdicionarLinhaLog('Payment Unique ID: ' + APagamento.PaymentUniqueid.ToString);
+  AdicionarLinhaLog('Data Cria√ß√£o: ' + APagamento.DataCriacao);
   AdicionarLinhaLog('Criado em: ' + APagamento.CreatedAt);
   AdicionarLinhaLog('Status Pagamento: ' + APagamento.PaymentStatus.ToString);
   AdicionarLinhaLog('Mensagem Pagamento: ' + APagamento.PaymentMessage);
   AdicionarLinhaLog('');
-  LogPaymentOrder(APagamento.PaymentOrder);
+  if Assigned(APagamento.PaymentOrder) then
+    LogPaymentOrder(APagamento.PaymentOrder);
   AdicionarLinhaLog('');
-  LogPaymentData(APagamento.PaymentData);
+  if Assigned(APagamento.PaymentData) then
+    LogPaymentData(APagamento.PaymentData);
+  AdicionarLinhaLog('');
+  if Assigned(APagamento.CancelData) then
+    LogCancelData(APagamento.CancelData);
   AdicionarSeparador;
 end;
 
@@ -269,10 +287,10 @@ var
 begin
   AdicionarLinhaLog('=== LISTA DE PAGAMENTOS ===');
   AdicionarLinhaLog('Total: ' + AListaPagamentos.Total.ToString);
-  AdicionarLinhaLog('Por P·gina: ' + AListaPagamentos.PerPage.ToString);
-  AdicionarLinhaLog('P·gina Atual: ' + AListaPagamentos.CurrentPage.ToString);
-  AdicionarLinhaLog('⁄ltima P·gina: ' + AListaPagamentos.LastPage.ToString);
-  AdicionarLinhaLog('AtÈ: ' + AListaPagamentos.ToPage.ToString);
+  AdicionarLinhaLog('Por P√°gina: ' + AListaPagamentos.PerPage.ToString);
+  AdicionarLinhaLog('P√°gina Atual: ' + AListaPagamentos.CurrentPage.ToString);
+  AdicionarLinhaLog('√öltima P√°gina: ' + AListaPagamentos.LastPage.ToString);
+  AdicionarLinhaLog('At√©: ' + AListaPagamentos.ToPage.ToString);
   AdicionarLinhaLog('Registros encontrados: ' + AListaPagamentos.Data.Count.ToString);
   AdicionarSeparador;
 
@@ -284,14 +302,24 @@ end;
 
 procedure TForm1.LogRejeitarPagamentoResponse(AResponse: TRejeitarPagamentoResponse);
 begin
-  AdicionarLinhaLog('=== REJEI«√O DE PAGAMENTO ===');
+  AdicionarLinhaLog('=== REJEICAO DE PAGAMENTO ===');
   AdicionarLinhaLog('Status: ' + BoolToStr(AResponse.Status, True));
   AdicionarLinhaLog('Mensagem: ' + AResponse.Message);
   AdicionarLinhaLog('');
   LogPagamento(AResponse.Data, 'DADOS DO PAGAMENTO REJEITADO');
 end;
 
-// === MÈtodos para DataSet (mantidos e adaptados) ===
+procedure TForm1.LogEstornoResponse(AResponse: TEstornoResponse);
+begin
+  AdicionarLinhaLog('=== ESTORNO DE PAGAMENTO ===');
+  AdicionarLinhaLog('Status: ' + BoolToStr(AResponse.Status, True));
+  AdicionarLinhaLog('Mensagem: ' + AResponse.Message);
+  AdicionarLinhaLog('');
+  if Assigned(AResponse.Data) then
+    LogPagamento(AResponse.Data, 'DADOS DO PAGAMENTO ESTORNADO');
+end;
+
+// === M√©todos para DataSet (mantidos e adaptados) ===
 
 procedure TForm1.ConfigurarCamposClientDataSet(aCDS: TClientDataSet);
 begin
@@ -303,6 +331,7 @@ begin
   with aCDS.FieldDefs do
   begin
     Add('payment_uniqueid', ftInteger);
+    Add('data_criacao', ftString, 30);
     Add('created_at', ftString, 30);
     Add('payment_status', ftInteger);
     Add('payment_message', ftString, 50);
@@ -314,6 +343,7 @@ begin
     Add('installment_count', ftInteger);
     Add('transaction_type', ftString, 5);
     Add('order_pos_id', ftInteger);
+    Add('print_receipt', ftInteger);
 
     // Campos do payment_data
     Add('cardholder_name', ftString, 50);
@@ -322,6 +352,10 @@ begin
     Add('authorization_code', ftString, 20);
     Add('authorization_date_time', ftString, 30);
     Add('payment_pos_id', ftInteger);
+
+    // Campos do cancel_data
+    Add('cancel_nsu', ftString, 30);
+    Add('cancel_date_time', ftString, 30);
   end;
 
   aCDS.CreateDataSet;
@@ -339,10 +373,10 @@ begin
   Grid := Sender as TDBGrid;
   Canvas := Grid.Canvas;
 
-  // Determina se a linha est· selecionada
+  // Determina se a linha est√° selecionada
   IsSelected := gdSelected in State;
 
-  // Determina se È linha Ìmpar (para efeito zebrado)
+  // Determina se √© linha √≠mpar (para efeito zebrado)
   IsOddRow := (Grid.DataSource.DataSet.RecNo mod 2) = 1;
 
   // === CORES DE FUNDO ===
@@ -355,7 +389,7 @@ begin
   end
   else if IsOddRow then
   begin
-    // Linhas Ìmpares - branco puro
+    // Linhas √≠mpares - branco puro
     Canvas.Brush.Color := clWhite;
     Canvas.Font.Color := RGB(33, 37, 41);  // Cinza escuro moderno
     Canvas.Font.Style := [];
@@ -368,12 +402,12 @@ begin
     Canvas.Font.Style := [];
   end;
 
-  // === FORMATA«√O ESPECIAL POR COLUNA (APENAS QUANDO N√O SELECIONADA) ===
+  // === FORMATA√á√ÉO ESPECIAL POR COLUNA (APENAS QUANDO N√ÉO SELECIONADA) ===
   Text := Column.Field.DisplayText;
 
-  if not IsSelected then  // S” APLICA CORES ESPECIAIS QUANDO N√O SELECIONADA
+  if not IsSelected then  // S√ì APLICA CORES ESPECIAIS QUANDO N√ÉO SELECIONADA
   begin
-    // Formatar valores monet·rios
+    // Formatar valores monet√°rios
     if (Column.FieldName = 'amount') and (Column.Field.AsFloat > 0) then
     begin
       Text := 'R$ ' + FormatFloat('#,##0.00', Column.Field.AsFloat);
@@ -389,17 +423,40 @@ begin
           Text := 'Solicitado';
           Canvas.Font.Color := RGB(255, 193, 7);  // Amarelo
         end;
+        2: begin
+          Text := 'Aguardando Comunicacao';
+          Canvas.Font.Color := RGB(23, 162, 184);  // Ciano/Info
+        end;
+        3: begin
+          Text := 'Aguardando Pagamento';
+          Canvas.Font.Color := RGB(0, 123, 255);  // Azul
+        end;
         4: begin
           Text := 'Pago';
           Canvas.Font.Color := RGB(40, 167, 69);  // Verde
           Canvas.Font.Style := [fsBold];
         end;
         5: begin
-          Text := 'Cancelado';
+          Text := 'Cancelado/Erro';
           Canvas.Font.Color := RGB(220, 53, 69);  // Vermelho
         end;
-        else
+        6: begin
+          Text := 'Solicitado Estorno';
+          Canvas.Font.Color := RGB(255, 133, 27);  // Laranja
+        end;
+        7: begin
+          Text := 'Estorno em Processamento';
+          Canvas.Font.Color := RGB(153, 102, 255);  // Roxo
+        end;
+        8: begin
+          Text := 'Estornado';
+          Canvas.Font.Color := RGB(111, 66, 193);  // Roxo escuro
+          Canvas.Font.Style := [fsBold];
+        end;
+        else begin
+          Text := 'Desconhecido';
           Canvas.Font.Color := RGB(108, 117, 125);  // Cinza neutro
+        end;
       end;
     end
 
@@ -411,7 +468,7 @@ begin
       Canvas.Font.Style := [fsBold];
     end
 
-    // Formatar datas - COR CINZA APENAS QUANDO N√O SELECIONADA
+    // Formatar datas - COR CINZA APENAS QUANDO N√ÉO SELECIONADA
     else if (Pos('created_at', Column.FieldName) > 0) or
             (Pos('authorization_date_time', Column.FieldName) > 0) then
     begin
@@ -420,7 +477,7 @@ begin
   end
   else
   begin
-    // QUANDO SELECIONADA, APLICAR APENAS FORMATA«’ES DE TEXTO (SEM ALTERAR CORES)
+    // QUANDO SELECIONADA, APLICAR APENAS FORMATA√á√ïES DE TEXTO (SEM ALTERAR CORES)
     if (Column.FieldName = 'amount') and (Column.Field.AsFloat > 0) then
     begin
       Text := 'R$ ' + FormatFloat('#,##0.00', Column.Field.AsFloat);
@@ -444,7 +501,7 @@ begin
     end;
   end;
 
-  // Formatar datas (independente da seleÁ„o)
+  // Formatar datas (independente da sele√ß√£o)
   if (Pos('created_at', Column.FieldName) > 0) or
      (Pos('authorization_date_time', Column.FieldName) > 0) then
   begin
@@ -454,7 +511,7 @@ begin
         // Tentar formatar como data
         Text := FormatDateTime('dd/mm/yyyy hh:nn', StrToDateTime(Column.Field.AsString));
       except
-        // Se n„o conseguir, manter o texto original
+        // Se n√£o conseguir, manter o texto original
         Text := Column.Field.DisplayText;
       end;
     end;
@@ -505,6 +562,7 @@ begin
 
       aCDS.Append;
       aCDS.FieldByName('payment_uniqueid').AsInteger := Pagamento.PaymentUniqueid;
+      aCDS.FieldByName('data_criacao').AsString := Pagamento.DataCriacao;
       aCDS.FieldByName('created_at').AsString := Pagamento.CreatedAt;
       aCDS.FieldByName('payment_status').AsInteger := Pagamento.PaymentStatus;
       aCDS.FieldByName('payment_message').AsString := Pagamento.PaymentMessage;
@@ -518,6 +576,7 @@ begin
         aCDS.FieldByName('installment_count').AsInteger := Pagamento.PaymentOrder.InstallmentCount;
         aCDS.FieldByName('transaction_type').AsString := Pagamento.PaymentOrder.TransactionType;
         aCDS.FieldByName('order_pos_id').AsInteger := Pagamento.PaymentOrder.PosId;
+        aCDS.FieldByName('print_receipt').AsInteger := Pagamento.PaymentOrder.PrintReceipt;
       end;
 
       // Payment Data
@@ -531,6 +590,13 @@ begin
         aCDS.FieldByName('payment_pos_id').AsInteger := Pagamento.PaymentData.PosId;
       end;
 
+      // Cancel Data
+      if Assigned(Pagamento.CancelData) then
+      begin
+        aCDS.FieldByName('cancel_nsu').AsString := Pagamento.CancelData.CancelNSU;
+        aCDS.FieldByName('cancel_date_time').AsString := Pagamento.CancelData.CancelDateTime;
+      end;
+
       aCDS.Post;
     end;
   finally
@@ -538,7 +604,7 @@ begin
   end;
 end;
 
-// === Eventos dos botıes com retornos tipados ===
+// === Eventos dos bot√µes com retornos tipados ===
 
 procedure TForm1.btnCriarClienteClick(Sender: TObject);
 var
@@ -902,7 +968,7 @@ begin
     // Configura o DataSet
     ConfigurarCamposClientDataSet(CDS_Pagamentos);
 
-    // Cria uma lista completa para agrupar todas as p·ginas
+    // Cria uma lista completa para agrupar todas as p√°ginas
     ListaPagamentosCompleta := TListaPagamentos.Create;
     try
       currentPage := 1;
@@ -917,7 +983,7 @@ begin
         );
 
         try
-          // Na primeira p·gina, copia os dados de paginaÁ„o
+          // Na primeira p√°gina, copia os dados de pagina√ß√£o
           if currentPage = 1 then
           begin
             ListaPagamentosCompleta.Total := ListaPagamentos.Total;
@@ -927,14 +993,15 @@ begin
             ListaPagamentosCompleta.ToPage := ListaPagamentos.ToPage;
           end;
 
-          // Cria cÛpias dos pagamentos para evitar problemas de ownership
+          // Cria copias dos pagamentos para evitar problemas de ownership
           for I := 0 to ListaPagamentos.Data.Count - 1 do
           begin
             PagamentoOriginal := ListaPagamentos.Data[I];
 
-            // Cria uma nova inst‚ncia e copia os dados
+            // Cria uma nova instancia e copia os dados
             PagamentoCopia := TPagamento.Create;
             PagamentoCopia.PaymentUniqueid := PagamentoOriginal.PaymentUniqueid;
+            PagamentoCopia.DataCriacao := PagamentoOriginal.DataCriacao;
             PagamentoCopia.CreatedAt := PagamentoOriginal.CreatedAt;
             PagamentoCopia.PaymentStatus := PagamentoOriginal.PaymentStatus;
             PagamentoCopia.PaymentMessage := PagamentoOriginal.PaymentMessage;
@@ -949,6 +1016,7 @@ begin
               PagamentoCopia.PaymentOrder.Amount := PagamentoOriginal.PaymentOrder.Amount;
               PagamentoCopia.PaymentOrder.OrderId := PagamentoOriginal.PaymentOrder.OrderId;
               PagamentoCopia.PaymentOrder.Description := PagamentoOriginal.PaymentOrder.Description;
+              PagamentoCopia.PaymentOrder.PrintReceipt := PagamentoOriginal.PaymentOrder.PrintReceipt;
             end;
 
             // Copia PaymentData
@@ -965,7 +1033,14 @@ begin
               PagamentoCopia.PaymentData.AcquirerCNPJ := PagamentoOriginal.PaymentData.AcquirerCNPJ;
             end;
 
-            // Adiciona a cÛpia na lista completa
+            // Copia CancelData
+            if Assigned(PagamentoOriginal.CancelData) then
+            begin
+              PagamentoCopia.CancelData.CancelNSU := PagamentoOriginal.CancelData.CancelNSU;
+              PagamentoCopia.CancelData.CancelDateTime := PagamentoOriginal.CancelData.CancelDateTime;
+            end;
+
+            // Adiciona a copia na lista completa
             ListaPagamentosCompleta.Data.Add(PagamentoCopia);
           end;
 
@@ -1043,6 +1118,33 @@ begin
     on E: Exception do
     begin
       AdicionarLinhaLog('ERRO AO CANCELAR PAGAMENTO:');
+      AdicionarLinhaLog(E.Message);
+    end;
+  end;
+
+  MemoLog.SelStart := 0;
+  MemoLog.Perform(EM_SCROLLCARET, 0, 0);
+end;
+
+procedure TForm1.btnSolicitarEstornoClick(Sender: TObject);
+var
+  Response: TEstornoResponse;
+begin
+  LimparMemoLog;
+
+  DTSuperTEF1.Token := edtToken.Text;
+
+  try
+    Response := DTSuperTEF1.SolicitarEstorno(StrToIntDef(edtPayUniqueID.Text, 0));
+    try
+      LogEstornoResponse(Response);
+    finally
+      Response.Free;
+    end;
+  except
+    on E: Exception do
+    begin
+      AdicionarLinhaLog('ERRO AO SOLICITAR ESTORNO:');
       AdicionarLinhaLog(E.Message);
     end;
   end;

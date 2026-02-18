@@ -1,4 +1,4 @@
-unit DTSuperTEF;
+ï»¿unit DTSuperTEF;
 
 interface
 
@@ -124,6 +124,7 @@ type
     FAmount: Extended;
     FOrderId: string;
     FDescription: string;
+    FPrintReceipt: Integer;
   public
     property PosId: Integer read FPosId write FPosId;
     property InstallmentType: Integer read FInstallmentType write FInstallmentType;
@@ -132,6 +133,7 @@ type
     property Amount: Extended read FAmount write FAmount;
     property OrderId: string read FOrderId write FOrderId;
     property Description: string read FDescription write FDescription;
+    property PrintReceipt: Integer read FPrintReceipt write FPrintReceipt;
   end;
 
   TPaymentData = class
@@ -157,23 +159,53 @@ type
     property AcquirerCNPJ: string read FAcquirerCNPJ write FAcquirerCNPJ;
   end;
 
+  // Dados de Cancelamento/Estorno
+  TCancelData = class
+  private
+    FCancelNSU: string;
+    FCancelDateTime: string;
+  public
+    property CancelNSU: string read FCancelNSU write FCancelNSU;
+    property CancelDateTime: string read FCancelDateTime write FCancelDateTime;
+  end;
+
   TPagamento = class
   private
     FPaymentUniqueid: Integer;
+    FDataCriacao: string;
     FCreatedAt: string;
     FPaymentStatus: Integer;
     FPaymentMessage: string;
     FPaymentOrder: TPaymentOrder;
     FPaymentData: TPaymentData;
+    FCancelData: TCancelData;
   public
     constructor Create;
     destructor Destroy; override;
     property PaymentUniqueid: Integer read FPaymentUniqueid write FPaymentUniqueid;
+    property DataCriacao: string read FDataCriacao write FDataCriacao;
     property CreatedAt: string read FCreatedAt write FCreatedAt;
     property PaymentStatus: Integer read FPaymentStatus write FPaymentStatus;
     property PaymentMessage: string read FPaymentMessage write FPaymentMessage;
     property PaymentOrder: TPaymentOrder read FPaymentOrder;
     property PaymentData: TPaymentData read FPaymentData;
+    property CancelData: TCancelData read FCancelData;
+  end;
+
+  // Resposta de Estorno
+  TEstornoResponse = class
+  private
+    FStatus: Boolean;
+    FMessage: string;
+    FData: TPagamento;
+    FPaymentUniqueID: Integer;
+  public
+    constructor Create;
+    destructor Destroy; override;
+    property Status: Boolean read FStatus write FStatus;
+    property Message: string read FMessage write FMessage;
+    property PaymentUniqueID : Integer read FPaymentUniqueID write FPaymentUniqueID;
+    property Data: TPagamento read FData;
   end;
 
   TListaPagamentos = class
@@ -216,11 +248,12 @@ type
     FClient: TRESTClient;
     FRequest: TRESTRequest;
     FResponse: TRESTResponse;
+    FChaveCliente: string;
 
     procedure PrepareRequest(const AResource: string; AMethod: TRESTRequestMethod);
     function URLEncode(const S: string): string;
 
-    // Métodos de conversão JSON para objetos tipados
+    // Mï¿½todos de conversï¿½o JSON para objetos tipados
     function JSONToCliente(AJSON: TJSONObject): TCliente;
     function JSONToListaClientes(AJSON: TJSONObject): TListaClientes;
     function JSONToPOS(AJSON: TJSONObject): TPOS;
@@ -229,13 +262,16 @@ type
     function JSONToPagamento(AJSON: TJSONObject): TPagamento;
     function JSONToListaPagamentos(AJSON: TJSONObject): TListaPagamentos;
     function JSONToRejeitarPagamentoResponse(AJSON: TJSONObject): TRejeitarPagamentoResponse;
+    function JSONToEstornoResponse(AJSON: TJSONObject): TEstornoResponse;
     function JSONToPaymentOrder(AJSON: TJSONObject): TPaymentOrder;
     function JSONToPaymentData(AJSON: TJSONObject): TPaymentData;
+    function JSONToCancelData(AJSON: TJSONObject): TCancelData;
 
     function GetJSONStringValue(AJSON: TJSONObject; const AName: string): string;
     function GetJSONIntValue(AJSON: TJSONObject; const AName: string): Integer;
     function GetJSONBoolValue(AJSON: TJSONObject; const AName: string): Boolean;
     function GetJSONFloatValue(AJSON: TJSONObject; const AName: string): Extended;
+    function GetJSONFloatInvariant(AJSON: TJSONObject;  const AName: string): Double;
 
   public
     constructor Create(AOwner: TComponent); override;
@@ -296,7 +332,13 @@ type
 
     function RejeitarPagamento(UniqueId: Integer): TRejeitarPagamentoResponse;
 
-    // === Métodos de compatibilidade (retornam JSON como antes) ===
+    // === Estornos ===
+    function SolicitarEstorno(PaymentUniqueId: Integer): TEstornoResponse;
+    function SolicitarEstornoJSON(PaymentUniqueId: Integer): TJSONObject;
+    function RejeitarEstorno(PaymentUniqueId: Integer): TEstornoResponse;
+    function RejeitarEstornoJSON(PaymentUniqueId: Integer): TJSONObject;
+
+    // === Mï¿½todos de compatibilidade (retornam JSON como antes) ===
     function CriarClienteJSON(
       Ativo: Integer;
       const CNPJ_CPF, NomeEmpresa, Contato: string;
@@ -343,6 +385,7 @@ type
   published
     property BaseURL: string read FBaseURL write FBaseURL;
     property Token: string read FToken write FToken;
+    property ChaveCliente : string read FChaveCliente write FChaveCliente;
   end;
 
 procedure Register;
@@ -389,12 +432,14 @@ begin
   inherited;
   FPaymentOrder := TPaymentOrder.Create;
   FPaymentData := TPaymentData.Create;
+  FCancelData := TCancelData.Create;
 end;
 
 destructor TPagamento.Destroy;
 begin
   FPaymentOrder.Free;
   FPaymentData.Free;
+  FCancelData.Free;
   inherited;
 end;
 
@@ -421,6 +466,20 @@ begin
 end;
 
 destructor TRejeitarPagamentoResponse.Destroy;
+begin
+  FData.Free;
+  inherited;
+end;
+
+{ TEstornoResponse }
+
+constructor TEstornoResponse.Create;
+begin
+  inherited;
+  FData := TPagamento.Create;
+end;
+
+destructor TEstornoResponse.Destroy;
 begin
   FData.Free;
   inherited;
@@ -480,7 +539,7 @@ begin
   end;
 end;
 
-// === Métodos auxiliares para conversão JSON ===
+// === Mï¿½todos auxiliares para conversï¿½o JSON ===
 
 function TDTSuperTEF.GetJSONStringValue(AJSON: TJSONObject; const AName: string): string;
 var
@@ -532,6 +591,32 @@ begin
     if Assigned(JSONValue) and not (JSONValue is TJSONNull) then
       Result := StrToFloatDef(JSONValue.Value, 0);
   end;
+end;
+
+function TDTSuperTEF.GetJSONFloatInvariant(AJSON: TJSONObject; const AName: string): Double;
+var
+  V: TJSONValue;
+  S: string;
+  FS: TFormatSettings;
+begin
+  Result := 0;
+
+  V := AJSON.GetValue(AName);
+  if V = nil then
+    Exit;
+
+  // Se jï¿½ for nï¿½mero
+  if V is TJSONNumber then
+  begin
+    Result := TJSONNumber(V).AsDouble;
+    Exit;
+  end;
+
+  // Se vier como string: "12.34"
+  S := V.Value;
+
+  FS := TFormatSettings.Invariant;
+  TryStrToFloat(S, Result, FS);
 end;
 
 function TDTSuperTEF.JSONToCliente(AJSON: TJSONObject): TCliente;
@@ -629,9 +714,10 @@ begin
   Result.InstallmentType := GetJSONIntValue(AJSON, 'installment_type');
   Result.TransactionType := GetJSONStringValue(AJSON, 'transaction_type');
   Result.InstallmentCount := GetJSONIntValue(AJSON, 'installment_count');
-  Result.Amount := GetJSONFloatValue(AJSON, 'amount');
+  Result.Amount := GetJSONFloatInvariant(AJSON, 'amount');
   Result.OrderId := GetJSONStringValue(AJSON, 'order_id');
   Result.Description := GetJSONStringValue(AJSON, 'description');
+  Result.PrintReceipt := GetJSONIntValue(AJSON, 'print_receipt');
 end;
 
 function TDTSuperTEF.JSONToPaymentData(AJSON: TJSONObject): TPaymentData;
@@ -648,12 +734,20 @@ begin
   Result.AcquirerCNPJ := GetJSONStringValue(AJSON, 'acquirer_cnpj');
 end;
 
+function TDTSuperTEF.JSONToCancelData(AJSON: TJSONObject): TCancelData;
+begin
+  Result := TCancelData.Create;
+  Result.CancelNSU := GetJSONStringValue(AJSON, 'cancel_nsu');
+  Result.CancelDateTime := GetJSONStringValue(AJSON, 'cancel_date_time');
+end;
+
 function TDTSuperTEF.JSONToPagamento(AJSON: TJSONObject): TPagamento;
 var
-  OrderJSON, DataJSON: TJSONObject;
+  OrderJSON, DataJSON, CancelJSON: TJSONObject;
 begin
   Result := TPagamento.Create;
   Result.PaymentUniqueid := GetJSONIntValue(AJSON, 'payment_uniqueid');
+  Result.DataCriacao := GetJSONStringValue(AJSON, 'data_criacao');
   Result.CreatedAt := GetJSONStringValue(AJSON, 'created_at');
   Result.PaymentStatus := GetJSONIntValue(AJSON, 'payment_status');
   Result.PaymentMessage := GetJSONStringValue(AJSON, 'payment_message');
@@ -670,6 +764,13 @@ begin
   begin
     Result.PaymentData.Free;
     Result.FPaymentData := JSONToPaymentData(DataJSON);
+  end;
+
+  CancelJSON := AJSON.GetValue('cancel_data') as TJSONObject;
+  if Assigned(CancelJSON) then
+  begin
+    Result.CancelData.Free;
+    Result.FCancelData := JSONToCancelData(CancelJSON);
   end;
 end;
 
@@ -713,7 +814,27 @@ begin
   end;
 end;
 
-// === MÉTODOS PRINCIPAIS COM RETORNO TIPADO ===
+function TDTSuperTEF.JSONToEstornoResponse(AJSON: TJSONObject): TEstornoResponse;
+var
+  DataJSON: TJSONObject;
+  LData: TJSONObject;
+begin
+  Result                 := TEstornoResponse.Create;
+  Result.Status          := GetJSONBoolValue(AJSON, 'status');
+  Result.Message         := GetJSONStringValue(AJSON, 'message');
+  LData := AJSON.GetValue('data') as TJSONObject;
+
+  Result.PaymentUniqueID := LData.GetValue('payment_uniqueid').AsType<Integer>;
+
+  DataJSON := AJSON.GetValue('data') as TJSONObject;
+  if Assigned(DataJSON) then
+  begin
+    Result.Data.Free;
+    Result.FData := JSONToPagamento(DataJSON);
+  end;
+end;
+
+// === Mï¿½TODOS PRINCIPAIS COM RETORNO TIPADO ===
 
 function TDTSuperTEF.CriarCliente(Ativo: Integer; const CNPJ_CPF, NomeEmpresa, Contato: string;
   LimitePOS: Integer; const SitefEmpresa, SitefCNPJ_CPF, SitefBanco: string): TCliente;
@@ -959,7 +1080,7 @@ var
 begin
   JSON := TJSONObject.Create;
   try
-    // Monta os parâmetros na URL
+    // Monta os parï¿½metros na URL
     URL := 'pagamentos?';
 
     if not aClienteChave.IsEmpty then
@@ -978,11 +1099,11 @@ begin
     if aDataFinal > 0 then
       URL := URL + 'data_final=' + FormatDateTime('yyyy-mm-dd', aDataFinal) + '&';
 
-    // Remove o último '&' se existir
+    // Remove o ï¿½ltimo '&' se existir
     if URL.EndsWith('&') then
       Delete(URL, Length(URL), 1);
 
-    // Prepara e executa requisição GET
+    // Prepara e executa requisiï¿½ï¿½o GET
     PrepareRequest(URL, rmGET);
     FRequest.Execute;
 
@@ -1027,7 +1148,7 @@ begin
   end;
 end;
 
-// === MÉTODOS DE COMPATIBILIDADE (mantém os retornos JSON originais) ===
+// === Mï¿½TODOS DE COMPATIBILIDADE (mantï¿½m os retornos JSON originais) ===
 
 function TDTSuperTEF.CriarClienteJSON(Ativo: Integer; const CNPJ_CPF, NomeEmpresa, Contato: string;
   LimitePOS: Integer; const SitefEmpresa, SitefCNPJ_CPF, SitefBanco: string): TJSONObject;
@@ -1205,7 +1326,7 @@ var
 begin
   JSON := TJSONObject.Create;
   try
-    // Monta os parâmetros na URL
+    // Monta os parï¿½metros na URL
     URL := 'pagamentos?';
 
     if not aClienteChave.IsEmpty then
@@ -1224,11 +1345,11 @@ begin
     if aDataFinal > 0 then
       URL := URL + 'data_final=' + FormatDateTime('yyyy-mm-dd', aDataFinal) + '&';
 
-    // Remove o último '&' se existir
+    // Remove o ï¿½ltimo '&' se existir
     if URL.EndsWith('&') then
       Delete(URL, Length(URL), 1);
 
-    // Prepara e executa requisição GET
+    // Prepara e executa requisiï¿½ï¿½o GET
     PrepareRequest(URL, rmGET);
     FRequest.Execute;
 
@@ -1250,6 +1371,90 @@ begin
   PrepareRequest('pagamentos/cancelar/' + UniqueId.ToString, rmPUT);
   FRequest.Execute;
   Result := TJSONObject.ParseJSONValue(FResponse.Content) as TJSONObject;
+end;
+
+// === ESTORNO (REFUND) METHODS ===
+
+function TDTSuperTEF.SolicitarEstorno(PaymentUniqueId: Integer): TEstornoResponse;
+var
+  JSON, ResponseJSON: TJSONObject;
+begin
+  JSON := TJSONObject.Create;
+  try
+    JSON.AddPair('payment_unique_id', TJSONNumber.Create(PaymentUniqueId));
+
+    PrepareRequest('pagamentos/estorno', rmPOST);
+    FRequest.AddBody(JSON.ToJSON, TRESTContentType.ctAPPLICATION_JSON);
+    FRequest.Execute;
+
+    ResponseJSON := TJSONObject.ParseJSONValue(FResponse.Content) as TJSONObject;
+    try
+      Result := JSONToEstornoResponse(ResponseJSON);
+    finally
+      ResponseJSON.Free;
+    end;
+  finally
+    JSON.Free;
+  end;
+end;
+
+function TDTSuperTEF.SolicitarEstornoJSON(PaymentUniqueId: Integer): TJSONObject;
+var
+  JSON: TJSONObject;
+begin
+  JSON := TJSONObject.Create;
+  try
+    JSON.AddPair('payment_unique_id', TJSONNumber.Create(PaymentUniqueId));
+
+    PrepareRequest('pagamentos/estorno', rmPOST);
+    FRequest.AddBody(JSON.ToJSON, TRESTContentType.ctAPPLICATION_JSON);
+    FRequest.Execute;
+
+    Result := TJSONObject.ParseJSONValue(FResponse.Content) as TJSONObject;
+  finally
+    JSON.Free;
+  end;
+end;
+
+function TDTSuperTEF.RejeitarEstorno(PaymentUniqueId: Integer): TEstornoResponse;
+var
+  JSON, ResponseJSON: TJSONObject;
+begin
+  JSON := TJSONObject.Create;
+  try
+    JSON.AddPair('payment_unique_id', TJSONNumber.Create(PaymentUniqueId));
+
+    PrepareRequest('pagamentos/estorno', rmDELETE);
+    FRequest.AddBody(JSON.ToJSON, TRESTContentType.ctAPPLICATION_JSON);
+    FRequest.Execute;
+
+    ResponseJSON := TJSONObject.ParseJSONValue(FResponse.Content) as TJSONObject;
+    try
+      Result := JSONToEstornoResponse(ResponseJSON);
+    finally
+      ResponseJSON.Free;
+    end;
+  finally
+    JSON.Free;
+  end;
+end;
+
+function TDTSuperTEF.RejeitarEstornoJSON(PaymentUniqueId: Integer): TJSONObject;
+var
+  JSON: TJSONObject;
+begin
+  JSON := TJSONObject.Create;
+  try
+    JSON.AddPair('payment_unique_id', TJSONNumber.Create(PaymentUniqueId));
+
+    PrepareRequest('pagamentos/estorno', rmDELETE);
+    FRequest.AddBody(JSON.ToJSON, TRESTContentType.ctAPPLICATION_JSON);
+    FRequest.Execute;
+
+    Result := TJSONObject.ParseJSONValue(FResponse.Content) as TJSONObject;
+  finally
+    JSON.Free;
+  end;
 end;
 
 end.
