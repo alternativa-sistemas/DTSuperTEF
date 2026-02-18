@@ -52,6 +52,12 @@ O **SuperTEF** é uma solução de pagamento digital com foco em automação com
 * Listar histórico com filtros e paginação
 * Detalhar e cancelar pagamento
 
+### 🔄 Estornos
+
+* Solicitar estorno de pagamento
+* Rejeitar solicitação de estorno
+* Versões com retorno em objeto ou JSON
+
 ---
 
 ## 🔧 Inicialização do Componente
@@ -256,7 +262,61 @@ Response := DTSuperTEF1.RejeitarPagamento(PaymentUniqueID);
 
 ---
 
-## 📖 Documentação Complementar
+## � Estornos
+
+### Solicitar Estorno
+
+Solicita o estorno de um pagamento já realizado.
+
+```pascal
+Estorno := DTSuperTEF1.SolicitarEstorno(PaymentUniqueID);
+```
+
+**Retorno:** Objeto `TEstornoResponse`
+
+* `Status: Boolean` - Indica se a solicitação foi bem-sucedida
+* `Message: string` - Mensagem de retorno da API
+* `PaymentUniqueID: Integer` - ID único do pagamento
+* `Data: TPagamento` - Dados completos do pagamento estornado
+
+### Solicitar Estorno (JSON)
+
+Versão que retorna o JSON bruto da API:
+
+```pascal
+JSONEstorno := DTSuperTEF1.SolicitarEstornoJSON(PaymentUniqueID);
+```
+
+**Retorno:** `TJSONObject` com a resposta completa da API
+
+### Rejeitar Estorno
+
+Rejeita uma solicitação de estorno pendente.
+
+```pascal
+Estorno := DTSuperTEF1.RejeitarEstorno(PaymentUniqueID);
+```
+
+**Retorno:** Objeto `TEstornoResponse`
+
+* `Status: Boolean` - Indica se a rejeição foi bem-sucedida
+* `Message: string` - Mensagem de retorno da API
+* `PaymentUniqueID: Integer` - ID único do pagamento
+* `Data: TPagamento` - Dados completos do pagamento
+
+### Rejeitar Estorno (JSON)
+
+Versão que retorna o JSON bruto da API:
+
+```pascal
+JSONEstorno := DTSuperTEF1.RejeitarEstornoJSON(PaymentUniqueID);
+```
+
+**Retorno:** `TJSONObject` com a resposta completa da API
+
+---
+
+## �📖 Documentação Complementar
 
 ### Tipos de Transação Suportados
 
