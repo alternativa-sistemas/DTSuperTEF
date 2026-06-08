@@ -386,6 +386,8 @@ type
     property BaseURL: string read FBaseURL write FBaseURL;
     property Token: string read FToken write FToken;
     property ChaveCliente : string read FChaveCliente write FChaveCliente;
+    property Request: TRESTRequest read FRequest;
+
   end;
 
 procedure Register;
