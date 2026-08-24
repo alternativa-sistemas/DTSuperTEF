@@ -273,6 +273,7 @@ type
     function GetJSONFloatValue(AJSON: TJSONObject; const AName: string): Extended;
     function GetJSONFloatInvariant(AJSON: TJSONObject;  const AName: string): Double;
 
+    procedure RaiseErrorResponse(AJSON: TJSONObject);
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -818,21 +819,21 @@ end;
 
 function TDTSuperTEF.JSONToEstornoResponse(AJSON: TJSONObject): TEstornoResponse;
 var
-  DataJSON: TJSONObject;
   LData: TJSONObject;
 begin
+  RaiseErrorResponse(AJSON);
   Result                 := TEstornoResponse.Create;
   Result.Status          := GetJSONBoolValue(AJSON, 'status');
   Result.Message         := GetJSONStringValue(AJSON, 'message');
   LData := AJSON.GetValue('data') as TJSONObject;
-
-  Result.PaymentUniqueID := LData.GetValue('payment_uniqueid').AsType<Integer>;
-
-  DataJSON := AJSON.GetValue('data') as TJSONObject;
-  if Assigned(DataJSON) then
+  if Assigned(LData) then
   begin
+    Result.PaymentUniqueID := LData.GetValue('payment_uniqueid').AsType<Integer>;
     Result.Data.Free;
-    Result.FData := JSONToPagamento(DataJSON);
+    Result.FData := JSONToPagamento(LData);
+  end else
+  begin
+    raise Exception.Create('O estorno retornou uma estrutura desconhecida.');
   end;
 end;
 
@@ -1415,6 +1416,38 @@ begin
     Result := TJSONObject.ParseJSONValue(FResponse.Content) as TJSONObject;
   finally
     JSON.Free;
+  end;
+end;
+
+procedure TDTSuperTEF.RaiseErrorResponse(AJSON: TJSONObject);
+var
+  ErrorsI, ErrorsJ: TJSONArray;
+  I, J: Integer;
+  ErroMSG, Erro: string;
+begin
+  ErrorsI := AJSON.GetValue('errors') as TJSONArray;
+  if Assigned(ErrorsI) then
+  begin
+    ErroMSG := '';
+    for I := 0 to ErrorsI.Count - 1 do
+    begin
+      ErrorsJ := ErrorsI.Items[I] as TJSONArray;
+      if Assigned(ErrorsJ) then
+      begin
+        for J := 0 to ErrorsJ.Count -1 do
+        begin
+          Erro := ErrorsJ.Items[J].Value;
+          if Erro <> '' then
+          begin
+            ErroMSG := ErroMSG + Erro + #13#10;
+          end;
+        end;
+      end else
+      begin
+        ErroMSG := ErroMSG + 'Estrutura desconhecida.' + #13#10;
+      end;
+    end;
+    raise Exception.Create(ErroMSG);
   end;
 end;
 
